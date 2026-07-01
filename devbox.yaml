@@ -1,0 +1,292 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Devbox instance in a public subnet
+
+Parameters:
+  AmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64
+  InstanceType:
+    Type: String
+    AllowedValues:
+      - c8g.medium
+      - c8g.large
+      - c8g.xlarge
+      - c8g.2xlarge
+      - m8g.medium
+      - m8g.large
+      - m8g.xlarge
+      - m8g.2xlarge
+      - r8g.medium
+      - r8g.large
+      - r8g.xlarge
+    Default: m8g.large
+  SshPublicKey:
+    Type: String
+  GitHubUsername:
+    Type: String
+  GitHubEmail:
+    Type: String
+  GitSigningKey:
+    Type: String
+  GitHubAuthTokenParameterName:
+    Type: AWS::SSM::Parameter::Name
+    Default: /devbox/github-auth-token
+    AllowedPattern: ^/devbox/[a-z0-9-]+$
+  TailscaleAuthKeyParameterName:
+    Type: AWS::SSM::Parameter::Name
+    Default: /devbox/tailscale-auth-key
+    AllowedPattern: ^/devbox/[a-z0-9-]+$
+  InstanceEnabled:
+    Type: String
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Default: 'true'
+  GitHubActionsRepository:
+    Type: String
+
+Conditions:
+  IsEnabled: !Equals [!Ref InstanceEnabled, 'true']
+
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Ref AWS::StackName
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Ref AWS::StackName
+
+  GatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  Subnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.1.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Ref AWS::StackName
+
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Ref AWS::StackName
+
+  Route:
+    Type: AWS::EC2::Route
+    DependsOn: GatewayAttachment
+    Properties:
+      RouteTableId: !Ref RouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Subnet
+      RouteTableId: !Ref RouteTable
+
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub Security group for ${AWS::StackName}
+      GroupName: !Ref AWS::StackName
+      VpcId: !Ref VPC
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Ref AWS::StackName
+
+  InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Ref AWS::StackName
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: ReadDevboxParameters
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: ssm:GetParameter
+                Resource:
+                  - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${GitHubAuthTokenParameterName}
+                  - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${TailscaleAuthKeyParameterName}
+
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: !Ref AWS::StackName
+      Roles:
+        - !Ref InstanceRole
+
+  Instance:
+    Type: AWS::EC2::Instance
+    Condition: IsEnabled
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT10M
+    Metadata:
+      AWS::CloudFormation::Init:
+        configSets:
+          default:
+            - setup
+        setup:
+          packages:
+            yum:
+              dnf-plugins-core: []
+              git: []
+              jq: []
+              make: []
+          files:
+            /home/ec2-user/.gitconfig:
+              content: !Sub |
+                [user]
+                  name = ${GitHubUsername}
+                  email = ${GitHubEmail}
+                  signingkey = ${GitSigningKey}
+                [gpg]
+                  format = ssh
+                [commit]
+                  gpgsign = true
+              mode: '000644'
+              owner: ec2-user
+              group: ec2-user
+            /home/ec2-user/.ssh/authorized_keys:
+              content: !Sub |
+                ${SshPublicKey}
+              mode: '000600'
+              owner: ec2-user
+              group: ec2-user
+            /home/ec2-user/bootstrap.sh:
+              content: !Sub |
+                #!/bin/bash
+                set -euo pipefail
+
+                cd /home/ec2-user
+
+                repos=$(gh repo list ${GitHubUsername} --limit 1000 --no-archived --json name,nameWithOwner)
+
+                jq -r '.[].nameWithOwner' <<< $repos | while read repo; do
+                  gh repo clone $repo
+                done
+
+                jq '{folders: sort_by(.name) | map({path: .name})}' <<< $repos > devbox.code-workspace
+              mode: '000755'
+              owner: ec2-user
+              group: ec2-user
+          commands:
+            01_install_tailscale:
+              command: curl -fsSL https://tailscale.com/install.sh | sh
+            02_start_tailscale:
+              command: !Sub |
+                auth_key=$(aws ssm get-parameter --name ${TailscaleAuthKeyParameterName} --with-decryption --query Parameter.Value --output text)
+                tailscale up --auth-key=$auth_key --hostname=devbox
+            03_install_gh:
+              command: |
+                dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
+                dnf -y install gh
+            04_install_terraform:
+              command: |
+                dnf config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
+                dnf -y install terraform
+            05_install_uv:
+              command: su - ec2-user -c 'curl -fsSL https://astral.sh/uv/install.sh | sh'
+            06_login_to_github:
+              command: !Sub |
+                aws ssm get-parameter --name ${GitHubAuthTokenParameterName} --with-decryption --query Parameter.Value --output text |
+                  su - ec2-user -c 'gh auth login --hostname github.com --git-protocol https --with-token'
+            07_clone_repos:
+              command: su - ec2-user -c /home/ec2-user/bootstrap.sh
+    Properties:
+      InstanceType: !Ref InstanceType
+      ImageId: !Ref AmiId
+      IamInstanceProfile: !Ref InstanceProfile
+      SubnetId: !Ref Subnet
+      SecurityGroupIds:
+        - !Ref SecurityGroup
+      MetadataOptions:
+        HttpTokens: required
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            Encrypted: true
+      PropagateTagsToVolumeOnCreation: true
+      Tags:
+        - Key: Name
+          Value: !Ref AWS::StackName
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          /opt/aws/bin/cfn-init --region ${AWS::Region} -c default -r Instance -s ${AWS::StackName} -v
+          /opt/aws/bin/cfn-signal --region ${AWS::Region} --resource Instance --stack ${AWS::StackName} -e $?
+
+  GitHubActionsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${AWS::StackName}-github-actions
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+              StringLike:
+                token.actions.githubusercontent.com:sub: !Sub repo:${GitHubActionsRepository}:*
+      Policies:
+        - PolicyName: DevboxStartStop
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: ec2:DescribeInstances
+                Resource: '*'
+              - !If
+                - IsEnabled
+                - Effect: Allow
+                  Action:
+                    - ec2:StartInstances
+                    - ec2:StopInstances
+                  Resource: !Sub
+                    - arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/${InstanceId}
+                    - InstanceId: !Ref Instance
+                - !Ref AWS::NoValue
+
+Outputs:
+  InstanceId:
+    Condition: IsEnabled
+    Value: !Ref Instance
+
+  GitHubActionsRoleArn:
+    Value: !GetAtt GitHubActionsRole.Arn

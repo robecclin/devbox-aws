@@ -1,0 +1,30 @@
+---
+name: Cleanup Start/Stop Runs
+
+'on':
+  schedule:
+    - cron: 30 4 * * *
+  workflow_dispatch:
+
+permissions:
+  actions: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    env:
+      GH_REPO: ${{ github.repository }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Delete "Start Devbox" runs
+        run: |
+          set -euo pipefail
+          gh run list --workflow "Start Devbox" --json databaseId \
+            | jq .[].databaseId \
+            | xargs -r -n1 gh run delete
+      - name: Delete "Stop Devbox" runs
+        run: |
+          set -euo pipefail
+          gh run list --workflow "Stop Devbox" --json databaseId \
+            | jq .[].databaseId \
+            | xargs -r -n1 gh run delete

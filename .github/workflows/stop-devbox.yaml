@@ -1,0 +1,23 @@
+---
+name: Stop Devbox
+
+'on':
+  schedule:
+    - cron: 0 4 * * *
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  stop:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: aws-actions/configure-aws-credentials@254c19bd240aabef8777f48595e9d2d7b972184b  # v6.2.1
+        with:
+          aws-region: ${{ vars.DEVBOX_AWS_REGION }}
+          role-to-assume: ${{ vars.DEVBOX_AWS_ROLE_ARN }}
+      - run: |
+          aws ec2 stop-instances --instance-ids ${{ vars.DEVBOX_INSTANCE_ID }} > /dev/null
+          aws ec2 wait instance-stopped --instance-ids ${{ vars.DEVBOX_INSTANCE_ID }}
