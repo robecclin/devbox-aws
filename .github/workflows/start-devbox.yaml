@@ -19,3 +19,4 @@ jobs:
       - run: |
           aws ec2 start-instances --instance-ids ${{ vars.DEVBOX_INSTANCE_ID }} > /dev/null
           aws ec2 wait instance-running --instance-ids ${{ vars.DEVBOX_INSTANCE_ID }}
+    timeout-minutes: 2

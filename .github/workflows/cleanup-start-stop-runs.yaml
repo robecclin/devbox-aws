@@ -28,3 +28,4 @@ jobs:
           gh run list --workflow "Stop Devbox" --json databaseId \
             | jq .[].databaseId \
             | xargs -r -n1 gh run delete
+    timeout-minutes: 2
