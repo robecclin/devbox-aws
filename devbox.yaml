@@ -238,6 +238,7 @@ Resources:
         - DeviceName: /dev/xvda
           Ebs:
             Encrypted: true
+            VolumeSize: 20
       PropagateTagsToVolumeOnCreation: true
       Tags:
         - Key: Name
