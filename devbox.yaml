@@ -185,46 +185,57 @@ Resources:
               mode: '000600'
               owner: ec2-user
               group: ec2-user
-            /home/ec2-user/bootstrap.sh:
+            /opt/devbox/bootstrap.sh:
               content: !Sub |
                 #!/bin/bash
                 set -euo pipefail
 
                 cd /home/ec2-user
 
-                repos=$(gh repo list ${GitHubUsername} --limit 1000 --no-archived --json name,nameWithOwner)
+                repos=$(gh repo list ${GitHubUsername} --limit 1000 --no-archived --json name)
 
-                jq -r '.[].nameWithOwner' <<< $repos | while read repo; do
-                  gh repo clone $repo
+                jq -r .[].name <<< $repos | while read -r repo_name; do
+                  gh repo clone ${GitHubUsername}/$repo_name
+                  pushd $repo_name
+                  make install
+                  popd
                 done
 
                 jq '{folders: sort_by(.name) | map({path: .name})}' <<< $repos > devbox.code-workspace
               mode: '000755'
-              owner: ec2-user
-              group: ec2-user
+              owner: root
+              group: root
           commands:
-            01_install_tailscale:
+            00_cleanup_home:
+              command: rm -f .bash_logout .bash_profile .ssh/authorized_keys.bak
+              cwd: /home/ec2-user
+            01_uninstall_wget:
+              command: dnf -y remove wget
+            02_install_tailscale:
               command: curl -fsSL https://tailscale.com/install.sh | sh
-            02_start_tailscale:
+            03_start_tailscale:
               command: !Sub |
                 auth_key=$(aws ssm get-parameter --name ${TailscaleAuthKeyParameterName} --with-decryption --query Parameter.Value --output text)
                 tailscale up --auth-key=$auth_key --hostname=devbox
-            03_install_gh:
+            04_install_gh:
               command: |
                 dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
                 dnf -y install gh
-            04_install_terraform:
+            05_install_terraform:
               command: |
                 dnf config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
                 dnf -y install terraform
-            05_install_uv:
-              command: su - ec2-user -c 'curl -fsSL https://astral.sh/uv/install.sh | sh'
-            06_login_to_github:
+            06_install_uv:
+              command: curl -fsSL https://astral.sh/uv/install.sh | sh
+              env:
+                UV_INSTALL_DIR: /usr/local/bin
+                UV_NO_MODIFY_PATH: '1'
+            07_login_to_github:
               command: !Sub |
                 aws ssm get-parameter --name ${GitHubAuthTokenParameterName} --with-decryption --query Parameter.Value --output text |
                   su - ec2-user -c 'gh auth login --hostname github.com --git-protocol https --with-token'
-            07_clone_repos:
-              command: su - ec2-user -c /home/ec2-user/bootstrap.sh
+            08_clone_repos:
+              command: su - ec2-user -c /opt/devbox/bootstrap.sh
     Properties:
       InstanceType: !Ref InstanceType
       ImageId: !Ref AmiId
