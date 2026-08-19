@@ -13,3 +13,9 @@ dev = [
     "cfn-lint>=1.55.1",
     "yamllint>=1.38.0",
 ]
+ci = [
+    "uv>=0.12.5",
+]
+
+[tool.uv]
+exclude-newer = "3 days"
