@@ -10,7 +10,7 @@ dependencies = []
 
 [dependency-groups]
 dev = [
-    "cfn-lint>=1.56.0",
+    "cfn-lint>=1.56.2",
     "yamllint>=1.38.0",
 ]
 ci = [
