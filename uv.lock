@@ -1,5 +1,5 @@
 version = 1
-revision = 5
+revision = 3
 requires-python = ">=3.14"
 
 [options]
@@ -8,7 +8,7 @@ exclude-newer-span = "P3D"
 
 [[package]]
 name = "cfn-lint"
-version = "1.57.1"
+version = "1.57.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jsonpatch" },
@@ -18,9 +18,9 @@ dependencies = [
     { name = "sympy" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/db/50/a619a323a963433bc00aed28918f16c7089ab518b604572ebc7ad088fd42/cfn_lint-1.57.1.tar.gz", hash = "sha256:df72dd862d9c9dfdcf831dbc4751e2c2ffaf751989450b9ec504dfd72c32da0d", size = 4951978, upload-time = "2026-09-29T00:05:56.542Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/41/93/996a8c4a8916ed10b71207de4276c7dbec4d13ad0f9a21830f9eed04f771/cfn_lint-1.57.2.tar.gz", hash = "sha256:7e859164badf01d2bd62c6d362284ab6e814d036f0a64249ba6a05287d787d68", size = 5000546, upload-time = "2026-10-06T19:29:15.939Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e9/e0/cc06b3de88b4d67e43817a638b398d6f14302ce79ecd4a9f123565e24ca3/cfn_lint-1.57.1-py3-none-any.whl", hash = "sha256:a709a543fd2a00c02d4d9f88a6773f38200f2907078ad1ca9ab8c5c4234ff8ce", size = 5538414, upload-time = "2026-09-29T00:05:54.265Z" },
+    { url = "https://files.pythonhosted.org/packages/2e/02/523307f365b693ee8e55564a13bef7767f5b6650fd22958dcd3d0390136e/cfn_lint-1.57.2-py3-none-any.whl", hash = "sha256:7007b30215ffb204bf1c669aeb68689253d23cddd21ef1a904fd424df13851cc", size = 5611048, upload-time = "2026-10-06T19:29:13.348Z" },
 ]
 
 [[package]]
@@ -42,7 +42,7 @@ dev = [
 [package.metadata.requires-dev]
 ci = [{ name = "uv", specifier = ">=0.12.23" }]
 dev = [
-    { name = "cfn-lint", specifier = ">=1.57.1" },
+    { name = "cfn-lint", specifier = ">=1.57.2" },
     { name = "yamllint", specifier = ">=1.38.0" },
 ]
 
