@@ -48,23 +48,23 @@ dev = [
 
 [[package]]
 name = "jsonpatch"
-version = "1.37"
+version = "1.41"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jsonpointer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/dc/90/7b87a9f5f148f4a04f51b154384c58be6f74c1a33e1b8c49faf672710436/jsonpatch-1.37.tar.gz", hash = "sha256:04288ef93e60084bcb118101cd9d53424e627b91bb47ec5a95c02ec3795f6d23", size = 41437, upload-time = "2026-10-24T20:53:56.744Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f0/8a/68334b79bea0e6e49e92ce02344f71ebf3538f8e08fee316029263285431/jsonpatch-1.41.tar.gz", hash = "sha256:1aca06402f94e5cd7bc133af0cb4f7b2c2f9c0bc172f9de52c9aa4c6104b0d1c", size = 56504, upload-time = "2026-11-02T22:20:47.779Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a6/bb/a8e34a97dfa3903c58b7f73428289e9211018995c356a09304c5a7949247/jsonpatch-1.37-py3-none-any.whl", hash = "sha256:7905646db52668a89d10945a07ca1c10337094dcf07d172ca384dccfca0b7438", size = 17170, upload-time = "2026-10-24T20:53:55.394Z" },
+    { url = "https://files.pythonhosted.org/packages/ad/0b/7e683efbfa0df2110323ff364cf7d37286f681f33c5012f2806ccf618f85/jsonpatch-1.41-py3-none-any.whl", hash = "sha256:fd493e82a57da7dd60e22ff2521f75d2be3ce41d76a845799d898de6da682922", size = 20261, upload-time = "2026-11-02T22:20:46.099Z" },
 ]
 
 [[package]]
 name = "jsonpointer"
-version = "3.5"
+version = "3.8"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/21/b8/fe0d28b5a2f14e501a9fd300c49273a05c78920a1925c36c487d539035bc/jsonpointer-3.5.tar.gz", hash = "sha256:81f28618a019cf1b011a6cf757439737972de1ccbeca2e1f86dfb4d661800792", size = 13562, upload-time = "2026-10-24T20:42:20.296Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c2/cf/5d665216bd9dea19dd26ea93ca525ef02936a9cccd0cd856f8408eb77f0b/jsonpointer-3.8.tar.gz", hash = "sha256:a627a255641390bfb4d51d4cfbb90648078ae855b45804ef7e19ea13a4cca355", size = 19212, upload-time = "2026-11-02T21:52:18.838Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a2/cc/8800c20eed936746b32ab438a0fbfc8f3bc18278e32f96caf4d5d6686d4c/jsonpointer-3.5-py3-none-any.whl", hash = "sha256:8728c42f6bc07b1436af31600267bdbb1495ac5a61f31d9583ff319ecf7da09c", size = 9121, upload-time = "2026-10-24T20:42:18.941Z" },
+    { url = "https://files.pythonhosted.org/packages/76/61/20f3a497beac4c8f869b8161b468b31c0f05d9d73600da0313eb759bad8a/jsonpointer-3.8-py3-none-any.whl", hash = "sha256:d69af85adaea202111bbc931067ead68dc16bca4592c74e1a1953152e2a330ab", size = 10233, upload-time = "2026-11-02T21:52:17.617Z" },
 ]
 
 [[package]]
